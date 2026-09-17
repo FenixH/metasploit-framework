@@ -58,7 +58,8 @@ class MetasploitModule < Msf::Post
       end
 
       ip_found = []
-
+      ip_mutex = Mutex.new 
+      
       while !iplst.nil? && !iplst.empty?
         a = []
         1.upto session.max_threads do
@@ -72,7 +73,7 @@ class MetasploitModule < Msf::Post
             end
             if r =~ /(TTL|Alive)/i
               print_good "\t#{ip_add} host found"
-              ip_found << ip_add
+              ip_mutex.synchronize { ip_found << ip_add }
             else
               vprint_status("\t#{ip_add} host not found")
             end
@@ -80,7 +81,7 @@ class MetasploitModule < Msf::Post
         end
         a.map(&:join)
       end
-    rescue Rex::TimeoutError, Rex::Post::Meterpreter::RequestError
+    rescue Rex::TimeoutError, Rex::Post::Meterpreter::RequestError => e
       vprint_error(e.message)
     rescue StandardError => e
       print_status("The following error was encountered: #{e.class} #{e}")
